@@ -21,7 +21,7 @@ app.use((req, res, next) => {
   next();
 });
 
-app.post('/askMeetik', async (req, res) => {
+app.post('/askChatik', async (req, res) => {
   const { message } = req.body;
   const geminiResponse = await geminiPro.generateContentStream(message);
 
