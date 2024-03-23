@@ -1,10 +1,8 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const GOOGLE_API_KEY = 'AIzaSyCaT0ofPu4r6zPSxdjazcPak9DIC0lnhGQ';
-
 const app = express();
-const googleGenAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+const googleGenAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 
 const geminiPro = googleGenAI.getGenerativeModel({ model: 'gemini-pro' });
 
