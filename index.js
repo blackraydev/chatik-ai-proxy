@@ -23,11 +23,14 @@ app.use((req, res, next) => {
 
 app.post('/askMeetik', async (req, res) => {
   const { message } = req.body;
-  const result = await geminiPro.generateContent(message);
-  const response = await result.response;
-  const text = response.text();
+  const geminiResponse = await geminiPro.generateContentStream(message);
 
-  res.json(text);
+  for await (const chunk of geminiResponse.stream) {
+    const message = chunk.text();
+    res.write(message);
+  }
+
+  res.end();
 });
 
 app.listen(3000, () => {
