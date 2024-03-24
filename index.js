@@ -39,18 +39,11 @@ app.get('/conversation', async (req, res) => {
 app.post('/askChatik', async (req, res) => {
   const { conversationId, userMessage } = req.body;
 
-  const fullUserMessage = {
-    role: 'user',
-    text: userMessage,
-    conversationId,
-  };
   const messages = db.messages.filter((message) => message.conversationId === conversationId);
-  const history = [...messages, fullUserMessage].map((message) => {
-    return {
-      role: message.role,
-      parts: [{ text: message.text }],
-    };
-  });
+  const history = messages.map((message) => ({
+    role: message.role,
+    parts: [{ text: message.text }],
+  }));
 
   console.log(history);
 
@@ -68,7 +61,11 @@ app.post('/askChatik', async (req, res) => {
 
   db.messages = [
     ...db.messages,
-    fullUserMessage,
+    {
+      role: 'user',
+      text: userMessage,
+      conversationId,
+    },
     {
       role: 'model',
       text: botMessage,
