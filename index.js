@@ -45,10 +45,13 @@ app.post('/askChatik', async (req, res) => {
     parts: [{ text: message.text }],
   }));
 
+  console.log('\n');
   console.log(history);
+  console.log(userMessage, typeof userMessage);
+  console.log('\n');
 
   const chat = geminiPro.startChat({ history });
-  const geminiResponse = await chat.sendMessageStream(userMessage);
+  const geminiResponse = await chat.sendMessageStream(userMessage.toString());
 
   let botMessage = '';
 
