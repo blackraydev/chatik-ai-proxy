@@ -29,9 +29,22 @@ app.use((req, res, next) => {
 
 app.get('/conversations', async (req, res) => {
   const { userId } = req.query;
-  const conversations = db.conversations.filter((conversation) => conversation.userId === userId);
+  const conversations = db.conversations.filter((conversation) => conversation.userId == userId);
 
   res.json({ conversations });
+});
+
+app.post('/conversations', async (req, res) => {
+  const { userId, conversationId } = req.body;
+  const conversation = {
+    id: conversationId,
+    userId,
+    title: conversationId, // TODO: Create valid title
+  };
+
+  db.conversations = [...db.conversations, conversation];
+
+  res.json({ conversation });
 });
 
 app.get('/messages', async (req, res) => {
