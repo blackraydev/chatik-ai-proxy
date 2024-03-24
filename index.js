@@ -22,8 +22,14 @@ app.use((req, res, next) => {
 });
 
 app.post('/askChatik', async (req, res) => {
-  const { message } = req.body;
-  const geminiResponse = await geminiPro.generateContentStream(message);
+  const { history, message } = req.body;
+
+  const actualHistory = history
+    .filter((historyPart) => !historyPart.error)
+    .map((historyPart) => ({ ...historyPart, parts: [{ text: historyPart.message }] }));
+
+  const chat = geminiPro.startChat({ history: actualHistory });
+  const geminiResponse = await chat.sendMessageStream(message);
 
   for await (const chunk of geminiResponse.stream) {
     const message = chunk.text();
