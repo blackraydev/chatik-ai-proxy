@@ -6,6 +6,12 @@ const app = express();
 const googleGenAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const geminiPro = googleGenAI.getGenerativeModel({ model: 'gemini-pro' });
 
+let db = {
+  users: [],
+  conversations: [],
+  messages: [],
+};
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
@@ -21,20 +27,51 @@ app.use((req, res, next) => {
   next();
 });
 
+app.get('/conversation', async (req, res) => {
+  const { userId } = req.query;
+  const conversation = db.conversations.find((conversation) => conversation.userId === userId);
+  const conversationId = conversation?.id;
+  const messages = db.messages.filter((message) => message.conversationId === conversationId);
+
+  res.json({ messages });
+});
+
 app.post('/askChatik', async (req, res) => {
-  const { history, message } = req.body;
+  const { conversationId, userMessage } = req.body;
 
-  const actualHistory = history
-    .filter((historyPart) => !historyPart.error)
-    .map((historyPart) => ({ role: historyPart.role, parts: [{ text: historyPart.message }] }));
+  const messages = db.messages.filter((message) => message.conversationId === conversationId);
+  const history = [...messages, userMessage].map((message) => {
+    return {
+      role: message.role,
+      parts: [{ text: message.text }],
+    };
+  });
 
-  const chat = geminiPro.startChat({ history: actualHistory });
-  const geminiResponse = await chat.sendMessageStream(message);
+  const chat = geminiPro.startChat({ history });
+  const geminiResponse = await chat.sendMessageStream(userMessage);
+
+  let botMessage = '';
 
   for await (const chunk of geminiResponse.stream) {
     const message = chunk.text();
+
+    botMessage += message;
     res.write(message);
   }
+
+  db.messages = [
+    ...db.messages,
+    {
+      role: 'user',
+      text: userMessage.text,
+      conversationId,
+    },
+    {
+      role: 'model',
+      text: botMessage,
+      conversationId,
+    },
+  ];
 
   res.end();
 });
