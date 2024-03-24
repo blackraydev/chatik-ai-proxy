@@ -27,10 +27,17 @@ app.use((req, res, next) => {
   next();
 });
 
-app.get('/conversation', async (req, res) => {
+app.get('/conversations', async (req, res) => {
   const { userId } = req.query;
-  const conversation = db.conversations.find((conversation) => conversation.userId === userId);
-  const conversationId = conversation?.id;
+  const userConversations = db.conversations.filter(
+    (conversation) => conversation.userId === userId,
+  );
+
+  res.json({ userConversations });
+});
+
+app.get('/messages', async (req, res) => {
+  const { conversationId } = req.query;
   const messages = db.messages.filter((message) => message.conversationId === conversationId);
 
   res.json({ messages });
@@ -46,8 +53,10 @@ app.post('/askChatik', async (req, res) => {
   }));
 
   console.log('\n');
+  console.log(JSON.stringify(db));
   console.log(history);
-  console.log(userMessage, typeof userMessage);
+  console.log(userMessage);
+  console.log(conversationId);
   console.log('\n');
 
   const chat = geminiPro.startChat({ history });
