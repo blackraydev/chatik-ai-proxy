@@ -26,7 +26,7 @@ app.post('/askChatik', async (req, res) => {
 
   const actualHistory = history
     .filter((historyPart) => !historyPart.error)
-    .map((historyPart) => ({ ...historyPart, parts: [{ text: historyPart.message }] }));
+    .map((historyPart) => ({ role: historyPart.role, parts: [{ text: historyPart.message }] }));
 
   const chat = geminiPro.startChat({ history: actualHistory });
   const geminiResponse = await chat.sendMessageStream(message);
