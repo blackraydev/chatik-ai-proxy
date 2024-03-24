@@ -52,6 +52,8 @@ app.post('/askChatik', async (req, res) => {
     };
   });
 
+  console.log(history);
+
   const chat = geminiPro.startChat({ history });
   const geminiResponse = await chat.sendMessageStream(userMessage);
 
