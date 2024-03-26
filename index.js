@@ -47,7 +47,7 @@ app.post('/conversations', async (req, res) => {
     id: conversationId,
     userId,
     title,
-    updatedAt: new Date().getTime(),
+    updatedAt: new Date().getTime().toString(),
   };
 
   db.conversations = [...db.conversations, conversation];
@@ -98,10 +98,10 @@ app.post('/askChatik', async (req, res) => {
   ];
 
   db.conversations = db.conversations.map((conversation) => {
-    if (conversation.id === conversationId) {
+    if (conversation?.id === conversationId) {
       return {
         ...conversation,
-        updatedAt: new Date().getTime(),
+        updatedAt: new Date().getTime().toString(),
       };
     }
   });
