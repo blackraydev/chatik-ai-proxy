@@ -37,7 +37,7 @@ app.get('/conversations', async (req, res) => {
 app.post('/conversations', async (req, res) => {
   const { userId, conversationId, prompt } = req.body;
 
-  const generateTitlePrompt = 'Generate a short title for this text';
+  const generateTitlePrompt = 'Generate a short title for this text (maximum of 5 words)';
   const content = await geminiPro.generateContent(`${generateTitlePrompt}: ${prompt}`);
   const title = content.response.text();
 
@@ -45,6 +45,7 @@ app.post('/conversations', async (req, res) => {
     id: conversationId,
     userId,
     title,
+    updatedAt: new Date().getSeconds(),
   };
 
   db.conversations = [...db.conversations, conversation];
@@ -67,13 +68,6 @@ app.post('/askChatik', async (req, res) => {
     role: message.role,
     parts: [{ text: message.text }],
   }));
-
-  console.log('\n');
-  console.log(JSON.stringify(db));
-  console.log(history);
-  console.log(userMessage);
-  console.log(conversationId);
-  console.log('\n');
 
   const chat = geminiPro.startChat({ history });
   const geminiResponse = await chat.sendMessageStream(userMessage.toString());
@@ -100,6 +94,15 @@ app.post('/askChatik', async (req, res) => {
       conversationId,
     },
   ];
+
+  db.conversations = db.conversations.map((conversation) => {
+    if (conversation.id === conversationId) {
+      return {
+        ...conversation,
+        updatedAt: new Date().getSeconds(),
+      };
+    }
+  });
 
   res.end();
 });
