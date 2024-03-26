@@ -29,8 +29,6 @@ app.use((req, res, next) => {
 
 app.get('/conversations', async (req, res) => {
   const { userId } = req.query;
-  console.log(userId);
-  console.log(db.conversations);
   const conversations = db.conversations.filter((conversation) => conversation?.userId == userId);
 
   res.json({ conversations });
@@ -50,7 +48,9 @@ app.post('/conversations', async (req, res) => {
     updatedAt: new Date().getTime().toString(),
   };
 
-  db.conversations = [...db.conversations, conversation];
+  setTimeout(() => {
+    db.conversations = [...db.conversations, conversation];
+  });
 
   res.json({ conversation });
 });
@@ -83,27 +83,29 @@ app.post('/askChatik', async (req, res) => {
     res.write(message);
   }
 
-  db.messages = [
-    ...db.messages,
-    {
-      role: 'user',
-      text: userMessage,
-      conversationId,
-    },
-    {
-      role: 'model',
-      text: botMessage,
-      conversationId,
-    },
-  ];
+  setTimeout(() => {
+    db.messages = [
+      ...db.messages,
+      {
+        role: 'user',
+        text: userMessage,
+        conversationId,
+      },
+      {
+        role: 'model',
+        text: botMessage,
+        conversationId,
+      },
+    ];
 
-  db.conversations = db.conversations.map((conversation) => {
-    if (conversation?.id === conversationId) {
-      return {
-        ...conversation,
-        updatedAt: new Date().getTime().toString(),
-      };
-    }
+    db.conversations = db.conversations.map((conversation) => {
+      if (conversation?.id === conversationId) {
+        return {
+          ...conversation,
+          updatedAt: new Date().getTime().toString(),
+        };
+      }
+    });
   });
 
   res.end();
