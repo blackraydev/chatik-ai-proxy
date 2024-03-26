@@ -29,6 +29,8 @@ app.use((req, res, next) => {
 
 app.get('/conversations', async (req, res) => {
   const { userId } = req.query;
+  console.log(userId);
+  console.log(db.conversations);
   const conversations = db.conversations.filter((conversation) => conversation.userId == userId);
 
   res.json({ conversations });
