@@ -35,11 +35,16 @@ app.get('/conversations', async (req, res) => {
 });
 
 app.post('/conversations', async (req, res) => {
-  const { userId, conversationId } = req.body;
+  const { userId, conversationId, prompt } = req.body;
+
+  const generateTitlePrompt = 'Generate a short title for this text';
+  const content = await geminiPro.generateContent(`${generateTitlePrompt}: ${prompt}`);
+  const title = content.response.text();
+
   const conversation = {
     id: conversationId,
     userId,
-    title: conversationId, // TODO: Create valid title
+    title,
   };
 
   db.conversations = [...db.conversations, conversation];
