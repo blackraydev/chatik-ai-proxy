@@ -31,7 +31,7 @@ app.get('/conversations', async (req, res) => {
   const { userId } = req.query;
   console.log(userId);
   console.log(db.conversations);
-  const conversations = db.conversations.filter((conversation) => conversation.userId == userId);
+  const conversations = db.conversations.filter((conversation) => conversation?.userId == userId);
 
   res.json({ conversations });
 });
@@ -47,7 +47,7 @@ app.post('/conversations', async (req, res) => {
     id: conversationId,
     userId,
     title,
-    updatedAt: new Date().getSeconds(),
+    updatedAt: new Date().getTime(),
   };
 
   db.conversations = [...db.conversations, conversation];
@@ -101,7 +101,7 @@ app.post('/askChatik', async (req, res) => {
     if (conversation.id === conversationId) {
       return {
         ...conversation,
-        updatedAt: new Date().getSeconds(),
+        updatedAt: new Date().getTime(),
       };
     }
   });
