@@ -1,11 +1,30 @@
 const express = require('express');
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } = require('@google/generative-ai');
 const { Sequelize, DataTypes } = require('sequelize');
 
 const app = express();
 
 const googleGenAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const geminiPro = googleGenAI.getGenerativeModel({ model: 'gemini-pro' });
+
+const safetySettings = [
+  {
+    category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+  {
+    category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+    threshold: HarmBlockThreshold.BLOCK_NONE,
+  },
+];
 
 const sequelize = new Sequelize(process.env.POSTGRES_CONNECTION_STRING);
 
@@ -100,7 +119,12 @@ app.post('/conversations', async (req, res) => {
     const { userId, conversationId, prompt } = req.body;
 
     const generateTitlePrompt = 'Generate a short title for this text (maximum of 5 words)';
-    const content = await geminiPro.generateContent(`${generateTitlePrompt}: ${prompt}`);
+    const fullPrompt = `${generateTitlePrompt}: ${prompt}`;
+
+    const content = await geminiPro.generateContent({
+      contents: [{ parts: [{ text: fullPrompt }] }],
+      safetySettings,
+    });
     const title = content.response.text();
 
     const conversation = await Conversations.create({
@@ -138,7 +162,7 @@ app.post('/askChatik', async (req, res) => {
       parts: [{ text: message.text }],
     }));
 
-    const chat = geminiPro.startChat({ history });
+    const chat = geminiPro.startChat({ history, safetySettings });
     const geminiResponse = await chat.sendMessageStream(userMessage.toString());
 
     let botMessage = '';
