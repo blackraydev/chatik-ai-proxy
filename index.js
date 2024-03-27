@@ -26,10 +26,6 @@ const Users = sequelize.define('Users', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  registeredAt: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
 });
 
 const Conversations = sequelize.define('Conversations', {
@@ -43,10 +39,6 @@ const Conversations = sequelize.define('Conversations', {
     allowNull: false,
   },
   title: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
-  updatedAt: {
     type: DataTypes.STRING,
     allowNull: false,
   },
@@ -70,14 +62,10 @@ const Messages = sequelize.define('Messages', {
     type: DataTypes.STRING,
     allowNull: false,
   },
-  createdAt: {
-    type: DataTypes.STRING,
-    allowNull: false,
-  },
 });
 
 (async () => {
-  await sequelize.sync({ logging: false });
+  await sequelize.sync({ force: true, logging: false });
 })();
 
 app.use(express.urlencoded({ extended: true }));
@@ -119,7 +107,6 @@ app.post('/conversations', async (req, res) => {
       id: conversationId,
       userId,
       title,
-      updatedAt: new Date().getTime().toString(),
     });
 
     res.json({ conversation });
@@ -168,7 +155,7 @@ app.post('/askChatik', async (req, res) => {
       { role: 'model', text: botMessage, conversationId },
     ]);
     await Conversations.update(
-      { updatedAt: new Date().getTime().toString() },
+      {},
       {
         where: {
           id: conversationId,
