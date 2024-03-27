@@ -41,6 +41,9 @@ const Users = sequelize.define('Users', {
   lastName: {
     type: DataTypes.STRING,
   },
+  photoURL: {
+    type: DataTypes.STRING,
+  },
   tariff: {
     type: DataTypes.STRING,
     allowNull: false,
@@ -78,7 +81,7 @@ const Messages = sequelize.define('Messages', {
     allowNull: false,
   },
   text: {
-    type: DataTypes.STRING,
+    type: DataTypes.TEXT,
     allowNull: false,
   },
 });
@@ -100,6 +103,28 @@ app.use((req, res, next) => {
   }
 
   next();
+});
+
+app.post('/users', async (req, res) => {
+  try {
+    const { id, firstName, lastName, photoURL } = req.body;
+
+    const [user] = await Users.findOrCreate({
+      where: { id },
+      defaults: {
+        id,
+        firstName,
+        lastName,
+        photoURL,
+        tariff: 'free',
+      },
+    });
+
+    res.json({ user });
+  } catch (e) {
+    console.log('POST Users:', e.message);
+    res.json('Something went wrong');
+  }
 });
 
 app.get('/conversations', async (req, res) => {
