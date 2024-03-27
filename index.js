@@ -118,7 +118,8 @@ app.post('/conversations', async (req, res) => {
   try {
     const { userId, conversationId, prompt } = req.body;
 
-    const generateTitlePrompt = 'Generate a short title for this text (maximum of 5 words)';
+    const generateTitlePrompt =
+      'Generate a short title for conversation based on the following prompt (maximum of 5 words)';
     const fullPrompt = `${generateTitlePrompt}: ${prompt}`;
 
     const content = await geminiPro.generateContent({
