@@ -116,7 +116,7 @@ app.post('/users', async (req, res) => {
         firstName,
         lastName,
         photoURL,
-        tariff: 'free',
+        tariff: 'Free',
       },
     });
 
