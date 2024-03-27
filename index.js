@@ -1,16 +1,84 @@
 const express = require('express');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { Sequelize, DataTypes } = require('sequelize');
 
 const app = express();
 
 const googleGenAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
 const geminiPro = googleGenAI.getGenerativeModel({ model: 'gemini-pro' });
 
-let db = {
-  users: [],
-  conversations: [],
-  messages: [],
-};
+const sequelize = new Sequelize(process.env.POSTGRES_CONNECTION_STRING);
+
+const Users = sequelize.define('Users', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: false,
+    primaryKey: true,
+  },
+  firstName: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  lastName: {
+    type: DataTypes.STRING,
+  },
+  tariff: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  registeredAt: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+});
+
+const Conversations = sequelize.define('Conversations', {
+  id: {
+    type: DataTypes.STRING,
+    autoIncrement: false,
+    primaryKey: true,
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  title: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  updatedAt: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+});
+
+const Messages = sequelize.define('Messages', {
+  id: {
+    type: DataTypes.INTEGER,
+    autoIncrement: true,
+    primaryKey: true,
+  },
+  conversationId: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  role: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  text: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+  createdAt: {
+    type: DataTypes.STRING,
+    allowNull: false,
+  },
+});
+
+(async () => {
+  await sequelize.sync({ logging: false });
+})();
 
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
@@ -28,89 +96,100 @@ app.use((req, res, next) => {
 });
 
 app.get('/conversations', async (req, res) => {
-  const { userId } = req.query;
-  const conversations = db.conversations.filter((conversation) => conversation?.userId == userId);
+  try {
+    const { userId } = req.query;
+    const conversations = await Conversations.findAll({ where: { userId } });
 
-  res.json({ conversations });
+    res.json({ conversations });
+  } catch (e) {
+    console.log('GET Conversations:', e.message);
+    res.json('Something went wrong');
+  }
 });
 
 app.post('/conversations', async (req, res) => {
-  const { userId, conversationId, prompt } = req.body;
+  try {
+    const { userId, conversationId, prompt } = req.body;
 
-  const generateTitlePrompt = 'Generate a short title for this text (maximum of 5 words)';
-  const content = await geminiPro.generateContent(`${generateTitlePrompt}: ${prompt}`);
-  const title = content.response.text();
+    const generateTitlePrompt = 'Generate a short title for this text (maximum of 5 words)';
+    const content = await geminiPro.generateContent(`${generateTitlePrompt}: ${prompt}`);
+    const title = content.response.text();
 
-  const conversation = {
-    id: conversationId,
-    userId,
-    title,
-    updatedAt: new Date().getTime().toString(),
-  };
+    const conversation = await Conversations.create({
+      id: conversationId,
+      userId,
+      title,
+      updatedAt: new Date().getTime().toString(),
+    });
 
-  setTimeout(() => {
-    db.conversations = [...db.conversations, conversation];
-  });
-
-  res.json({ conversation });
+    res.json({ conversation });
+  } catch (e) {
+    console.log('POST Conversations:', e.message);
+    res.json('Something went wrong');
+  }
 });
 
 app.get('/messages', async (req, res) => {
-  const { conversationId } = req.query;
-  const messages = db.messages.filter((message) => message.conversationId === conversationId);
+  try {
+    const { conversationId } = req.query;
+    const messages = await Messages.findAll({ where: { conversationId } });
 
-  res.json({ messages });
+    res.json({ messages });
+  } catch (e) {
+    console.log('GET Messages:', e.message);
+    res.json('Something went wrong');
+  }
 });
 
 app.post('/askChatik', async (req, res) => {
-  const { conversationId, userMessage } = req.body;
+  try {
+    const { conversationId, userMessage } = req.body;
 
-  const messages = db.messages.filter((message) => message.conversationId === conversationId);
-  const history = messages.map((message) => ({
-    role: message.role,
-    parts: [{ text: message.text }],
-  }));
+    const messages = await Messages.findAll({ where: { conversationId } });
+    const history = messages.map((message) => ({
+      role: message.role,
+      parts: [{ text: message.text }],
+    }));
 
-  const chat = geminiPro.startChat({ history });
-  const geminiResponse = await chat.sendMessageStream(userMessage.toString());
+    const chat = geminiPro.startChat({ history });
+    const geminiResponse = await chat.sendMessageStream(userMessage.toString());
 
-  let botMessage = '';
+    let botMessage = '';
 
-  for await (const chunk of geminiResponse.stream) {
-    const message = chunk.text();
+    for await (const chunk of geminiResponse.stream) {
+      const message = chunk.text();
 
-    botMessage += message;
-    res.write(message);
+      botMessage += message;
+      res.write(message);
+    }
+
+    await Messages.bulkCreate([
+      { role: 'user', text: userMessage, conversationId },
+      { role: 'model', text: botMessage, conversationId },
+    ]);
+    await Conversations.update(
+      { updatedAt: new Date().getTime().toString() },
+      {
+        where: {
+          id: conversationId,
+        },
+      },
+    );
+
+    res.end();
+  } catch (e) {
+    console.log('POST AskChatik:', e.message);
+    res.json('Something went wrong');
   }
-
-  setTimeout(() => {
-    db.messages = [
-      ...db.messages,
-      {
-        role: 'user',
-        text: userMessage,
-        conversationId,
-      },
-      {
-        role: 'model',
-        text: botMessage,
-        conversationId,
-      },
-    ];
-
-    db.conversations = db.conversations.map((conversation) => {
-      if (conversation?.id === conversationId) {
-        return {
-          ...conversation,
-          updatedAt: new Date().getTime().toString(),
-        };
-      }
-    });
-  });
-
-  res.end();
 });
 
-app.listen(3000, () => {
+app.listen(3000, async () => {
   console.log('Server running on port 3000');
+
+  try {
+    await sequelize.authenticate({ logging: false });
+    console.log('Connection to DataBase has been established successfully.');
+  } catch (error) {
+    console.error('Unable to connect to the database:', error);
+  }
 });
